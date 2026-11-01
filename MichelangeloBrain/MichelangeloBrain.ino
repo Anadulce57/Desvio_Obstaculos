@@ -4,9 +4,9 @@ const int TRIG_A = 13, ECHO_A = 12; // esquerda
 const int TRIG_B = 8,  ECHO_B = 7;  // frente
 const int TRIG_C = 4,  ECHO_C = 2;  // direita
 
-//Declaração de distâncias - TESTES 
-const double dist_limitB = 10.00; // cm
-const double dist_limitLat = 5.00;
+//Declaração de distâncias - TESTES!
+const long DIST_LIMITE_FRENTE  = 10;
+const long DIST_LIMITE_LATERAL = 5;
 
 //Declaração de motores 
 //Motor esquerdo: IN1/IN2 | Motor direito: IN3/IN4 - Adição
@@ -25,6 +25,21 @@ const unsigned long TEMPO_CORRECAO = 150; // ajuste pequeno (obstáculo lateral)
 const unsigned long TEMPO_PAUSA    = 100; // pausa entre movimentos
 
 //Funções
+//Declarar estados
+enum Estado {
+  ANDANDO,           // lê sensores e decide
+  PARADO_ANTES_RE,   // pausa antes de dar ré
+  RE,                // dando ré
+  PARADO_APOS_RE,    // pausa e decisão do lado do giro
+  GIRANDO,           // giro de desvio
+  PARADO_APOS_GIRO,  // pausa antes de voltar a andar
+  CORRIGINDO         // correção pequena por obstáculo lateral
+};
+
+Estado estado = ANDANDO;
+unsigned long tempoInicio = 0; // quando o estado atual
+unsigned long duracaoGiro = 0; // quanto tempo o giro atual deve durar 
+
 // Função padrão
 long lerDistancia(int pinTrig, int pinEcho) {
   digitalWrite(pinTrig, LOW);
@@ -38,28 +53,136 @@ long lerDistancia(int pinTrig, int pinEcho) {
   return duracao / 58;
 }
 
-//Declarar estados
-enum Estado {
-  ANDANDO,           // lê sensores e decide
-  PARADO_ANTES_RE,   // pausa antes de dar ré
-  RE,                // dando ré
-  PARADO_APOS_RE,    // pausa e decisão do lado do giro
-  GIRANDO,           // giro de desvio
-  PARADO_APOS_GIRO,  // pausa antes de voltar a andar
-  CORRIGINDO         // correção pequena por obstáculo lateral
-}
-
-Estado estado = ANDANDO;
-unsigned long tempoInicio = 0; // quando o estado atual
-const long duracaoGiro = 0; // quanto tempo o giro atual deve durar 
-
 void mudarEstado(Estado novo) { 
   estado = novo;
-  tempoInicio = milis();
+  tempoInicio = millis();
 }
 
 bool passou(unsigned long ms) {
-  return milis() - tempoInicio >= ms;
+  return millis() - tempoInicio >= ms;
+}
+
+// Motores - comportamento
+void motorEsquerdo(int velocidade) {
+  if (velocidade > 0) {
+    analogWrite(IN1, velocidade);
+    analogWrite(IN2, 0);
+  } else if (velocidade < 0) {
+    analogWrite(IN1, 0);
+    analogWrite(IN2, -velocidade);
+  } else {
+    analogWrite(IN1, 0);
+    analogWrite(IN2, 0);
+  }
+}
+
+void motorDireito(int velocidade) {
+  if (velocidade > 0) {
+    analogWrite(IN3, velocidade);
+    analogWrite(IN4, 0);
+  } else if (velocidade < 0) {
+    analogWrite(IN3, 0);
+    analogWrite(IN4, -velocidade);
+  } else {
+    analogWrite(IN3, 0);
+    analogWrite(IN4, 0);
+  }
+}
+
+//Movimentos 
+void frente() {
+  motorEsquerdo(VEL_ANDAR);
+  motorDireito(VEL_ANDAR);
+}
+
+void re() {
+  motorEsquerdo(-VEL_RE);
+  motorDireito(-VEL_RE);
+}
+
+// Gira no próprio eixo: roda esquerda para trás, direita para frente
+void girarEsquerda() {
+  motorEsquerdo(-VEL_GIRO);
+  motorDireito(VEL_GIRO);
+}
+
+// Gira no próprio eixo: roda esquerda para frente, direita para trás
+void girarDireita() {
+  motorEsquerdo(VEL_GIRO);
+  motorDireito(-VEL_GIRO);
+}
+
+void parar() {
+  motorEsquerdo(0);
+  motorDireito(0);
+}
+
+//  Estado ANDANDO - Verificar sensores e decisão 
+void verificarSensores() {
+  double distA = lerDistancia(TRIG_A, ECHO_A);
+  double distB = lerDistancia(TRIG_B, ECHO_B);
+  double distC = lerDistancia(TRIG_C, ECHO_C);
+
+  bool obstA = (distA <= DIST_LIMITE_LATERAL);
+  bool obstB = (distB <= DIST_LIMITE_FRENTE);
+  bool obstC = (distC <= DIST_LIMITE_LATERAL);
+
+  // Prioridade 1: obstáculo à frente
+  if (obstB) {
+    Serial.println("Obstáculo à frente: analisando.");
+    parar();
+    mudarEstado(PARADO_ANTES_RE);
+  }
+  // Prioridade 2: corredor estreito -> segue reto
+  else if (obstA && obstC) {
+    Serial.println("Corredor estreito: seguindo em frente.");
+    frente();
+  }
+  // Prioridade 3: obstáculo à esquerda -> corrige para a direita
+  else if (obstA) {
+    Serial.println("Obstáculo à esquerda: corrigindo para a direita.");
+    girarDireita();
+    mudarEstado(CORRIGINDO);
+  }
+  // Prioridade 4: obstáculo à direita -> corrige para a esquerda
+  else if (obstC) {
+    Serial.println("Obstáculo à direita: corrigindo para a esquerda.");
+    girarEsquerda();
+    mudarEstado(CORRIGINDO);
+  }
+  // Nada por perto
+  else {
+    frente();
+  }
+}
+
+// Estado PARADO_APOS_RE: escolher para onde girar após
+void decidirGiro() {
+  long distA = lerDistancia(TRIG_A, ECHO_A);
+  long distC = lerDistancia(TRIG_C, ECHO_C);
+
+  Serial.print("Analisando -> esquerda: ");
+  Serial.print(distA);
+  Serial.print(" cm | direita: ");
+  Serial.print(distC);
+  Serial.println(" cm");
+
+  if (distA <= DIST_LIMITE_LATERAL && distC <= DIST_LIMITE_LATERAL) {
+    Serial.println("Sem saída! Meia-volta.");
+    girarDireita();
+    duracaoGiro = TEMPO_CURVA * 2;
+  }
+  else if (distA > distC) {
+    Serial.println("Mais espaço à esquerda -> girando à esquerda.");
+    girarEsquerda();
+    duracaoGiro = TEMPO_CURVA;
+  }
+  else {
+    Serial.println("Mais espaço à direita -> girando à direita.");
+    girarDireita();
+    duracaoGiro = TEMPO_CURVA;
+  }
+  mudarEstado(GIRANDO);
 }
 
 void setup() {
@@ -71,31 +194,57 @@ void setup() {
 
   pinMode(IN1, OUTPUT); pinMode(IN2, OUTPUT);
   pinMode(IN3, OUTPUT); pinMode(IN4, OUTPUT);
-  Serial.println("Servidor iniciado. Monitorando sensores...");
+  parar();
+  
+  Serial.println("Robô iniciado...");
+  delay(1000);
+  mudarEstado(ANDANDO);
 }
 
 void loop() {
-  double distA = lerDistancia(TRIG_A, ECHO_A);
-  double distB = lerDistancia(TRIG_B, ECHO_B);
-  double distC = lerDistancia(TRIG_C, ECHO_C);
+  switch (estado) {
+        case ANDANDO:
+      verificarSensores();
+      break;
 
-  bool obst_detecA = false;
-  bool obst_detecB = false;
-  bool obst_detecC = false;
-  
-  // Detecção
-  if (distA <= dist_limitLat) {
-    Serial.print("Obstáculo detectado com sucesso à esquerda: ");
-    Serial.println("-Vira a direita!");
-  }
+    case PARADO_ANTES_RE:
+      if (passou(TEMPO_PAUSA)) {
+        re();
+        mudarEstado(RE);
+      }
+      break;
 
-  else if (distB <= dist_limitB) {
-    Serial.print("Obstáculo detectado com sucesso à frente: ");
-    Serial.println("-Analisa!");
-  }
+    case RE:
+      if (passou(TEMPO_RE)) {
+        parar();
+        mudarEstado(PARADO_APOS_RE);
+      }
+      break;
 
-  else if (distC <= dist_limitLat) {
-    Serial.print("Obstáculo detectado com sucesso à direita: ");
-    Serial.println("-Vira a esquerda!");;
+    case PARADO_APOS_RE:
+      if (passou(TEMPO_PAUSA)) {
+        decidirGiro(); // já inicia o giro e muda para GIRANDO
+      }
+      break;
+
+    case GIRANDO:
+      if (passou(duracaoGiro)) {
+        parar();
+        mudarEstado(PARADO_APOS_GIRO);
+      }
+      break;
+
+    case PARADO_APOS_GIRO:
+      if (passou(TEMPO_PAUSA)) {
+        mudarEstado(ANDANDO);
+      }
+      break;
+
+    case CORRIGINDO:
+      if (passou(TEMPO_CORRECAO)) {
+        frente();
+        mudarEstado(ANDANDO);
+      }
+      break;
   }
 }
