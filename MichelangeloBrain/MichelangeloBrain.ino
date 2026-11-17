@@ -10,8 +10,8 @@ const long DIST_LIMITE_LATERAL = 5;
 
 //Declaração de motores 
 //Motor esquerdo: IN1/IN2 | Motor direito: IN3/IN4 - Adição
-const int IN1 = 10, IN2 = 9;
-const int IN3 = 6, IN4 = 5;
+const int IN1 = 6, IN2 = 9;
+const int IN3 = 10, IN4 = 11;
 
 //Declaração de velocidade PWM, ideia do duty cycle - TESTES!
 const int VEL_ANDAR = 180; // ~70% de duty cycle
