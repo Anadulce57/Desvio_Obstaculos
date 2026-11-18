@@ -65,11 +65,11 @@ bool passou(unsigned long ms) {
 // Motores - comportamento
 void motorEsquerdo(int velocidade) {
   if (velocidade > 0) {
-    analogWrite(IN1, velocidade);
-    analogWrite(IN2, 0);
-  } else if (velocidade < 0) {
     analogWrite(IN1, 0);
-    analogWrite(IN2, -velocidade);
+    analogWrite(IN2, velocidade);
+  } else if (velocidade < 0) {
+    analogWrite(IN1, -velocidade);
+    analogWrite(IN2, 0);
   } else {
     analogWrite(IN1, 0);
     analogWrite(IN2, 0);
