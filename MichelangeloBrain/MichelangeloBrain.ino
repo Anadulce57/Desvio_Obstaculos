@@ -14,14 +14,14 @@ const int IN1 = 6, IN2 = 9;
 const int IN3 = 10, IN4 = 11;
 
 //Declaração de velocidade PWM, ideia do duty cycle - TESTES!
-const int VEL_ANDAR = 180; // ~70% de duty cycle
+const int VEL_ANDAR = 195; // ~70% de duty cycle
 const int VEL_RE    = 160; // ~63%
 const int VEL_GIRO  = 200; // ~78% (giro precisa de mais torque)
 
 //Declarações de tempo de manobra - TESTES!
 const unsigned long TEMPO_RE       = 300; // quanto tempo dá ré
-const unsigned long TEMPO_CURVA    = 450; // giro de ~90°
-const unsigned long TEMPO_CORRECAO = 150; // ajuste pequeno (obstáculo lateral)
+const unsigned long TEMPO_CURVA    = 225; // giro de ~90°
+const unsigned long TEMPO_CORRECAO = 155; // ajuste pequeno (obstáculo lateral)
 const unsigned long TEMPO_PAUSA    = 100; // pausa entre movimentos
 
 //Funções
