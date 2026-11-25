@@ -1,4 +1,8 @@
 // Programação para o robô Desvia obstáculos
+
+// Declaração dos leds
+const int ledA = 3, ledB = 5;
+
 //Declarações das portas de sensores 
 const int TRIG_A = 13, ECHO_A = 12; // esquerda
 const int TRIG_B = 8,  ECHO_B = 7;  // frente
@@ -188,6 +192,7 @@ void decidirGiro() {
 void setup() {
   Serial.begin(9600);
 
+  pinMode(ledA, OUTPUT); pinMode(ledB, OUTPUT);
   pinMode(TRIG_A, OUTPUT); pinMode(ECHO_A, INPUT);
   pinMode(TRIG_B, OUTPUT); pinMode(ECHO_B, INPUT);
   pinMode(TRIG_C, OUTPUT); pinMode(ECHO_C, INPUT);
@@ -202,6 +207,12 @@ void setup() {
 }
 
 void loop() {
+
+  digitalWrite(ledA, 1);
+  digitalWrite(ledB, 1);
+  delay(500);
+  digitalWrite(ledA, 0);
+  digitalWrite(ledB, 0);
   switch (estado) {
         case ANDANDO:
       verificarSensores();
