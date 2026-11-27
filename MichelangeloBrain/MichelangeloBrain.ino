@@ -1,17 +1,11 @@
-// Programação para o robô Desvia obstáculos
-
-// Declaração dos leds
-const int ledA = 3, ledB = 5;
-
+// Programação para o robô Desvia obstáculoa
 //Declarações das portas de sensores 
 const int TRIG_A = 13, ECHO_A = 12; // esquerda
 const int TRIG_B = 8,  ECHO_B = 7;  // frente
 const int TRIG_C = 4,  ECHO_C = 2;  // direita
-
 //Declaração de distâncias - TESTES!
-const long DIST_LIMITE_FRENTE  = 10;
-const long DIST_LIMITE_LATERAL = 5;
-
+const long DIST_LIMITE_FRENTE  = 15;
+const long DIST_LIMITE_LATERAL = 10;
 //Declaração de motores 
 //Motor esquerdo: IN1/IN2 | Motor direito: IN3/IN4 - Adição
 const int IN1 = 6, IN2 = 9;
@@ -191,8 +185,6 @@ void decidirGiro() {
 
 void setup() {
   Serial.begin(9600);
-
-  pinMode(ledA, OUTPUT); pinMode(ledB, OUTPUT);
   pinMode(TRIG_A, OUTPUT); pinMode(ECHO_A, INPUT);
   pinMode(TRIG_B, OUTPUT); pinMode(ECHO_B, INPUT);
   pinMode(TRIG_C, OUTPUT); pinMode(ECHO_C, INPUT);
